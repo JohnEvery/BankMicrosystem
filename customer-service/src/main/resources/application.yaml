@@ -1,0 +1,26 @@
+spring:
+  jpa:
+    database: POSTGRESQL
+    properties.hibernate.temp.use_jdbc_metadata_defaults: false
+    hibernate:
+      ddl-auto: create
+    properties:
+  datasource:
+    platform: postgres
+    url: jdbc:postgresql://localhost:5432/customer_service_database
+    username: customers
+    password: root
+    driver-class-name: org.postgresql.Driver
+
+server:
+  servlet:
+    context-path: /customers
+  port: 9090
+
+internal:
+  account:
+    service:
+      url: http://localhost:8081/accounts/
+  bill:
+    service:
+      url: http://localhost:8082/bills/
