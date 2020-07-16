@@ -6,9 +6,11 @@ import com.javastart.billservice.exceptions.BillNotFoundException;
 import com.javastart.billservice.repository.BillRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -41,7 +43,8 @@ public class BillService {
     public List<Long> saveAll(List<BillRequestDto> billRequestDTO) {
         return billRepository.saveAll(billRequestDTO.stream().map(dto
                 -> new Bill(dto.getAccountId(), dto.getIsDefault(), dto.getAmount(),
-                dto.getOverdraftEnabled(), OffsetDateTime.now())).collect(Collectors.toList()))
+                dto.getOverdraftEnabled(), OffsetDateTime.now()))
+                .collect(Collectors.toList()))
                 .stream()
                 .map(Bill::getId)
                 .collect(Collectors.toList());
@@ -57,6 +60,21 @@ public class BillService {
         Bill bill = new Bill(accountId, isDefault, amount, overdraftEnabled, billCreatedDate);
         bill.setId(billId);
         return billRepository.save(bill);
+    }
+
+    @Transactional
+    public List<Bill> updateBills(Long billIdFrom, Long billIdTo, List<BillRequestDto> billRequestDtos) {
+        List<Bill> bills = billRequestDtos.stream().map(dto
+                -> new Bill(dto.getAccountId(), dto.getIsDefault(), dto.getAmount(),
+                dto.getOverdraftEnabled(), OffsetDateTime.now()))
+                .collect(Collectors.toList());
+        Bill billFrom = bills.get(0);
+        Bill billTo = bills.get(1);
+        billFrom.setId(billIdFrom);
+        billTo.setId(billIdTo);
+        billRepository.save(billFrom);
+        billRepository.save(billTo);
+        return Arrays.asList(billFrom, billTo);
     }
 
     public Bill deleteBill(Long id) {

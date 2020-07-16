@@ -69,6 +69,16 @@ public class BillController {
                 billRequestDto.getIsDefault(), billRequestDto.getAmount(), billRequestDto.getOverdraftEnabled()));
     }
 
+    @PutMapping("/list")
+    public List<BillResponseDto> updateBills(@RequestParam(value = "bill_id_from") Long billFrom,
+                                             @RequestParam(value = "bill_id_to") Long billIdTo,
+                                             @RequestBody List<BillRequestDto> billRequestDtos) {
+        return billService.updateBills(billFrom, billIdTo, billRequestDtos)
+                .stream()
+                .map(BillResponseDto::new)
+                .collect(Collectors.toList());
+    }
+
     @DeleteMapping("/{id}")
     public BillResponseDto deleteBill(@PathVariable("id") Long billId) {
         return new BillResponseDto(billService.deleteBill(billId));
