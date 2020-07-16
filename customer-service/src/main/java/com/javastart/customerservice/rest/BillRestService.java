@@ -1,5 +1,6 @@
 package com.javastart.customerservice.rest;
 
+import com.javastart.customerservice.controller.dto.BillDTO;
 import com.javastart.customerservice.controller.dto.BillResponseDTO;
 import com.javastart.customerservice.exceptions.DepositException;
 import org.springframework.beans.factory.annotation.Value;
@@ -52,5 +53,12 @@ public class BillRestService {
                 .findAny()
                 .orElseThrow(()
                         -> new DepositException("Not fount default bill on account with id " + accountId));
+    }
+
+    public void updateBills(Long billIdFrom, Long billIdTo, List<BillDTO> bills) {
+        StringBuilder sb = new StringBuilder(billServiceUrl);
+        sb.append("list").append("?").append("bill_id_from=").append(billIdFrom)
+                .append("&").append("bill_id_to=").append(billIdTo);
+        restTemplate.put(sb.toString(), bills);
     }
 }

@@ -1,6 +1,7 @@
 package com.javastart.customerservice.exceptions.handler;
 
 import com.javastart.customerservice.exceptions.DepositException;
+import com.javastart.customerservice.exceptions.NotEnoughMoneyException;
 import com.javastart.customerservice.exceptions.UnableValueForRequestException;
 import com.javastart.customerservice.exceptions.WithdrawException;
 import org.springframework.http.HttpHeaders;
@@ -49,5 +50,11 @@ public class CustomerServiceExceptionHandler extends ResponseEntityExceptionHand
     public ResponseEntity<ExceptionResponseTemplate> withdrawException(WithdrawException ex) {
         return new ResponseEntity<>(new ExceptionResponseTemplate(OffsetDateTime.now(), ex.getMessage(),
                 400, "WithdrawException"), HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler({NotEnoughMoneyException.class})
+    public  ResponseEntity<ExceptionResponseTemplate> notEnoughMoney(NotEnoughMoneyException ex) {
+        return new ResponseEntity<>(new ExceptionResponseTemplate(OffsetDateTime.now(), ex.getMessage(),
+                400, "NotEnoughMoneyException"), HttpStatus.CONFLICT);
     }
 }
