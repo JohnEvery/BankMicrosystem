@@ -36,7 +36,6 @@ public class DepositMessageHandler {
 
         SimpleMailMessage msg = new SimpleMailMessage();
         msg.setTo(depositResponseDTO.getEmail());
-        msg.setFrom("lori@xyz.com");
 
         msg.setSubject("Deposit");
         msg.setText("Make deposit to bill: " + depositResponseDTO.getBillId()

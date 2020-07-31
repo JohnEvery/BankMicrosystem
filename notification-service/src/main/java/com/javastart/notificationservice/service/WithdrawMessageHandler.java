@@ -36,7 +36,6 @@ public class WithdrawMessageHandler {
 
         SimpleMailMessage msg = new SimpleMailMessage();
         msg.setTo(withdrawResponseDTO.getAccountEmail());
-        msg.setFrom("lori@xyz.com");
 
         msg.setSubject("Withdraw");
         msg.setText("Make withdraw to bill: " + withdrawResponseDTO.getBillId()
