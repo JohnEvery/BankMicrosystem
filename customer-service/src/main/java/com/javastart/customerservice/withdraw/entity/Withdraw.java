@@ -27,10 +27,13 @@ public class Withdraw {
 
     private BigDecimal amount;
 
-    public Withdraw(OffsetDateTime withdrawTime, Long billId, String email, BigDecimal amount) {
+    private BigDecimal balance;
+
+    public Withdraw(OffsetDateTime withdrawTime, Long billId, String email, BigDecimal amount, BigDecimal balance) {
         this.withdrawTime = withdrawTime;
         this.billId = billId;
         this.email = email;
         this.amount = amount;
+        this.balance = balance;
     }
 }

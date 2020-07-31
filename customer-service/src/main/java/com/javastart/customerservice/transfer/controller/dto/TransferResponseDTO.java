@@ -11,7 +11,7 @@ import java.time.OffsetDateTime;
 @AllArgsConstructor
 public class TransferResponseDTO {
 
-    private OffsetDateTime transferDate;
+//    private OffsetDateTime transferDate;
 
     private Long billIdFrom;
 
@@ -24,7 +24,7 @@ public class TransferResponseDTO {
     private BigDecimal amount;
 
     public TransferResponseDTO(Transfer transfer) {
-        this.transferDate = transfer.getTransferDate();
+//        this.transferDate = transfer.getTransferDate();
         this.billIdFrom = transfer.getBillFrom();
         this.billIdTo = transfer.getBillTo();
         this.accountEmailFrom = transfer.getEmailFrom();

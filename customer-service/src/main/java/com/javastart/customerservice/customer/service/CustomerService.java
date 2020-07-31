@@ -1,9 +1,12 @@
 package com.javastart.customerservice.customer.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.javastart.customerservice.controller.dto.*;
 import com.javastart.customerservice.customer.controller.dto.CustomerRequestDTO;
 import com.javastart.customerservice.customer.controller.dto.CustomerResponseDTO;
 import com.javastart.customerservice.rest.BillRestService;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -30,10 +33,13 @@ public class CustomerService {
 
     private final BillRestService billRestService;
 
+    private final RabbitTemplate rabbitTemplate;
+
     @Autowired
-    public CustomerService(RestTemplate restTemplate, BillRestService billRestService) {
+    public CustomerService(RestTemplate restTemplate, BillRestService billRestService, RabbitTemplate rabbitTemplate) {
         this.restTemplate = restTemplate;
         this.billRestService = billRestService;
+        this.rabbitTemplate = rabbitTemplate;
     }
 
     public CustomerResponseDTO getCustomerByEmail(String email) {
@@ -73,6 +79,15 @@ public class CustomerService {
         List<Long> billIds = Arrays.asList(Objects.requireNonNull(billsResponse.getBody()));
         AccountDTO accountDTO = new AccountDTO(accountRequestDto.getName(), accountRequestDto.getEmail(),
                 accountRequestDto.getPhone(), billIds);
+        AccountMessageResponseDTO accountMessageDTO = new AccountMessageResponseDTO(accountRequestDto.getName(),
+                accountRequestDto.getEmail(), accountRequestDto.getPhone());
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            rabbitTemplate.convertAndSend("js.account.notify.exchange",
+                    "js.account", objectMapper.writeValueAsString(accountMessageDTO));
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
         restTemplate.put(accountServiceUrl.concat("/").concat(String.valueOf(accountId)), accountDTO);
         return "Success";
     }

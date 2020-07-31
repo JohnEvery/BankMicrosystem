@@ -45,7 +45,7 @@ public class DepositController {
 
     @PostMapping("/deposit")
     public DepositResponseDTO deposit(@RequestBody DepositRequestDTO requestDTO) {
-        if(billRestService.getDefaultBillByAccountId(requestDTO.getAccountId()) != null) {
+        if(requestDTO.getAccountId() != null) {
             return new DepositResponseDTO(depositService.deposit(requestDTO.getAccountId(), requestDTO.getBillId(),
                     requestDTO.getAmount()),
                     billRestService.getDefaultBillByAccountId(requestDTO.getAccountId()).getAmount());

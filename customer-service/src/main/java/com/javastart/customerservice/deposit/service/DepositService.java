@@ -1,17 +1,21 @@
 package com.javastart.customerservice.deposit.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.javastart.customerservice.controller.dto.AccountResponseDTO;
 import com.javastart.customerservice.controller.dto.BillDTO;
 import com.javastart.customerservice.controller.dto.BillResponseDTO;
+import com.javastart.customerservice.deposit.controller.dto.DepositResponseDTO;
 import com.javastart.customerservice.deposit.entity.Deposit;
 import com.javastart.customerservice.deposit.repository.DepositRepository;
 import com.javastart.customerservice.exceptions.DepositException;
 import com.javastart.customerservice.rest.AccountRestService;
 import com.javastart.customerservice.rest.BillRestService;
 import com.javastart.customerservice.rest.CustomerRestService;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
@@ -36,14 +40,19 @@ public class DepositService {
 
     private final BillRestService billRestService;
 
+    private final RabbitTemplate rabbitTemplate;
+
     @Autowired
     public DepositService(RestTemplate restTemplate,
-                          CustomerRestService customerRestService, AccountRestService accountRestService, DepositRepository depositRepository, BillRestService billRestService) {
+                          CustomerRestService customerRestService, AccountRestService accountRestService,
+                          DepositRepository depositRepository, BillRestService billRestService,
+                          RabbitTemplate rabbitTemplate) {
         this.restTemplate = restTemplate;
         this.customerRestService = customerRestService;
         this.accountRestService = accountRestService;
         this.depositRepository = depositRepository;
         this.billRestService = billRestService;
+        this.rabbitTemplate = rabbitTemplate;
     }
 
     public Deposit getById(Long depositId) {
@@ -66,16 +75,25 @@ public class DepositService {
         customerRestService.checkAmount(amount);
         if (billId != null) {
             BillResponseDTO billResponseDTO = billRestService.getBillById(billId);
-            AccountResponseDTO account = accountRestService.getAccountById(accountId);
             BillDTO billRequestDTO = BillDTO.builder()
-                    .accountId(account.getAccountId())
+                    .accountId(billResponseDTO.getAccountId())
                     .amount(billResponseDTO.getAmount().add(amount))
                     .overdraftEnabled(billResponseDTO.getOverdraftEnabled())
                     .build();
+            AccountResponseDTO account = accountRestService.getAccountById(billResponseDTO.getAccountId());
             restTemplate.put(billServiceUrl.concat(billId.toString()), billRequestDTO);
-            depositRepository.save(new Deposit(OffsetDateTime.now(), billId, account.getEmail(), amount,
-                    billRequestDTO.getAmount()));
-            return new Deposit(OffsetDateTime.now(), billId, account.getEmail(), amount, billRequestDTO.getAmount());
+            Deposit depositResponse = new Deposit(OffsetDateTime.now(), billId, account.getEmail(),
+                    amount, billRequestDTO.getAmount());
+            depositRepository.save(depositResponse);
+            DepositResponseDTO depositResponseDTO = new DepositResponseDTO(depositResponse);
+            ObjectMapper objectMapper = new ObjectMapper();
+            try {
+                rabbitTemplate.convertAndSend("js.deposit.notify.exchange",
+                        "js.deposit", objectMapper.writeValueAsString(depositResponseDTO));
+            } catch (JsonProcessingException e) {
+                e.printStackTrace();
+            }
+            return depositResponse;
         }
         BillResponseDTO defaultBill = billRestService.getDefaultBillByAccountId(accountId);
         BillDTO billRequestDTO = BillDTO.builder()
@@ -88,9 +106,17 @@ public class DepositService {
         putBillUrl.append(defaultBill.getBillId());
         restTemplate.put(putBillUrl.toString(), billRequestDTO);
         AccountResponseDTO account = accountRestService.getAccountById(accountId);
-        depositRepository.save(new Deposit(OffsetDateTime.now(), defaultBill.getBillId(), account.getEmail(),
-                amount, billRequestDTO.getAmount()));
-        return new Deposit(OffsetDateTime.now(), defaultBill.getBillId(), account.getEmail(), amount,
-                billRequestDTO.getAmount());
+        Deposit depositResponse = new Deposit(OffsetDateTime.now(), defaultBill.getBillId(), account.getEmail(),
+                amount, billRequestDTO.getAmount());
+        depositRepository.save(depositResponse);
+        DepositResponseDTO depositResponseDTO = new DepositResponseDTO(depositResponse);
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            rabbitTemplate.convertAndSend("js.deposit.notify.exchange",
+                    "js.deposit", objectMapper.writeValueAsString(depositResponseDTO));
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+        return depositResponse;
     }
 }

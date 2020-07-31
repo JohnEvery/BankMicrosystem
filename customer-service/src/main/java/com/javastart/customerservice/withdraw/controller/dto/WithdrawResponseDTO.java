@@ -11,7 +11,7 @@ import java.time.OffsetDateTime;
 @AllArgsConstructor
 public class WithdrawResponseDTO {
 
-    private OffsetDateTime withdrawDate;
+//    private OffsetDateTime withdrawDate;
 
     private Long billId;
 
@@ -19,10 +19,13 @@ public class WithdrawResponseDTO {
 
     private BigDecimal amount;
 
+    private BigDecimal balance;
+
     public WithdrawResponseDTO(Withdraw withdraw) {
-        this.withdrawDate = withdraw.getWithdrawTime();
+//        this.withdrawDate = withdraw.getWithdrawTime();
         this.billId = withdraw.getBillId();
         this.accountEmail = withdraw.getEmail();
         this.amount = withdraw.getAmount();
+        this.balance = withdraw.getBalance();
     }
 }

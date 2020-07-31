@@ -1,15 +1,21 @@
 package com.javastart.customerservice.withdraw.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.javastart.customerservice.controller.dto.AccountResponseDTO;
 import com.javastart.customerservice.controller.dto.BillDTO;
 import com.javastart.customerservice.controller.dto.BillResponseDTO;
+import com.javastart.customerservice.deposit.controller.dto.DepositResponseDTO;
+import com.javastart.customerservice.deposit.entity.Deposit;
 import com.javastart.customerservice.exceptions.WithdrawException;
 import com.javastart.customerservice.exceptions.NotEnoughMoneyException;
 import com.javastart.customerservice.rest.AccountRestService;
 import com.javastart.customerservice.rest.BillRestService;
 import com.javastart.customerservice.rest.CustomerRestService;
+import com.javastart.customerservice.withdraw.controller.dto.WithdrawResponseDTO;
 import com.javastart.customerservice.withdraw.entity.Withdraw;
 import com.javastart.customerservice.withdraw.repository.WithdrawRepository;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -36,13 +42,16 @@ public class WithdrawService {
 
     private final AccountRestService accountRestService;
 
+    private final RabbitTemplate rabbitTemplate;
+
     @Autowired
-    public WithdrawService(RestTemplate restTemplate, WithdrawRepository withdrawRepository, CustomerRestService customerRestService, BillRestService billRestService, AccountRestService accountRestService) {
+    public WithdrawService(RestTemplate restTemplate, WithdrawRepository withdrawRepository, CustomerRestService customerRestService, BillRestService billRestService, AccountRestService accountRestService, RabbitTemplate rabbitTemplate) {
         this.restTemplate = restTemplate;
         this.withdrawRepository = withdrawRepository;
         this.customerRestService = customerRestService;
         this.billRestService = billRestService;
         this.accountRestService = accountRestService;
+        this.rabbitTemplate = rabbitTemplate;
     }
 
     public Withdraw getWithdrawById(Long id) {
@@ -63,24 +72,36 @@ public class WithdrawService {
     @Transactional
     public Withdraw withdraw(Long billId, Long accountId, BigDecimal amount) {
         customerRestService.checkAmount(amount);
-        AccountResponseDTO account = accountRestService.getAccountById(accountId);
         if (billId != null) {
             BillResponseDTO billResponseDTO = billRestService.getBillById(billId);
-            if (billResponseDTO.getAmount().compareTo(amount) > 0) {
+            AccountResponseDTO account = accountRestService.getAccountById(billResponseDTO.getAccountId());
+            if (billResponseDTO.getAmount().compareTo(amount) >= 0) {
                 BillDTO billRequestDTO = BillDTO.builder()
                         .accountId(account.getAccountId())
                         .amount(billResponseDTO.getAmount().subtract(amount))
+                        .isDefault(billResponseDTO.getIsDefault())
                         .overdraftEnabled(billResponseDTO.getOverdraftEnabled())
                         .build();
                 restTemplate.put(billServiceUrl.concat(billId.toString()), billRequestDTO);
-                withdrawRepository.save(
-                        new Withdraw(OffsetDateTime.now(), billId, account.getEmail(), amount));
-                return new Withdraw(OffsetDateTime.now(), billId, account.getEmail(), amount);
+
+                Withdraw withdraw = new Withdraw(OffsetDateTime.now(), billId, account.getEmail(),
+                        amount, billRequestDTO.getAmount());
+                withdrawRepository.save(withdraw);
+                WithdrawResponseDTO withdrawResponseDTO = new WithdrawResponseDTO(withdraw);
+                ObjectMapper objectMapper = new ObjectMapper();
+                try {
+                    rabbitTemplate.convertAndSend("js.withdraw.notify.exchange",
+                            "js.withdraw", objectMapper.writeValueAsString(withdrawResponseDTO));
+                } catch (JsonProcessingException e) {
+                    e.printStackTrace();
+                }
+                return withdraw;
             } else {
                 throw new NotEnoughMoneyException("Not enough funds on bill with id " + billId);
             }
         }
         BillResponseDTO defaultBill = billRestService.getDefaultBillByAccountId(accountId);
+        AccountResponseDTO account = accountRestService.getAccountById(accountId);
         if (defaultBill.getAmount().compareTo(amount) > 0) {
             BillDTO billRequestDTO = BillDTO.builder()
                     .accountId(account.getAccountId())
@@ -89,9 +110,18 @@ public class WithdrawService {
                     .overdraftEnabled(defaultBill.getOverdraftEnabled())
                     .build();
             restTemplate.put(billServiceUrl.concat(defaultBill.getBillId().toString()), billRequestDTO);
-            withdrawRepository.save(
-                    new Withdraw(OffsetDateTime.now(), billId, account.getEmail(), amount));
-            return new Withdraw(OffsetDateTime.now(), billId, account.getEmail(), amount);
+            Withdraw withdrawResponse = new Withdraw(OffsetDateTime.now(), defaultBill.getBillId(), account.getEmail(),
+                    amount, billRequestDTO.getAmount());
+            withdrawRepository.save(withdrawResponse);
+            WithdrawResponseDTO withdrawResponseDTO = new WithdrawResponseDTO(withdrawResponse);
+            ObjectMapper objectMapper = new ObjectMapper();
+            try {
+                rabbitTemplate.convertAndSend("js.withdraw.notify.exchange",
+                        "js.withdraw", objectMapper.writeValueAsString(withdrawResponseDTO));
+            } catch (JsonProcessingException e) {
+                e.printStackTrace();
+            }
+            return withdrawResponse;
         } else {
             throw new WithdrawException("Not enough funds on bill with id " + billId);
         }

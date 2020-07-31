@@ -7,13 +7,16 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
 @Entity
 @Data
 @NoArgsConstructor
-public class Deposit {
+public class Deposit implements Serializable {
+
+    public static final int serialVersionUID = 10;
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)

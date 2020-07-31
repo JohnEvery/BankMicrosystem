@@ -15,6 +15,7 @@ public class AccountService {
 
     private final AccountRepository accountRepository;
 
+
     @Autowired
     public AccountService(AccountRepository accountRepository) {
         this.accountRepository = accountRepository;
@@ -35,8 +36,9 @@ public class AccountService {
         if (!isEmailAlreadyExist(email)) {
             throw new EmailAlreadyExistException("This email is already used.");
         }
-        return accountRepository.save(new Account(name, email, phone,
-                bills, OffsetDateTime.now())).getId();
+        Account account = new Account(name, email, phone,
+                bills, OffsetDateTime.now());
+        return accountRepository.save(account).getId();
     }
 
     public List<Account> findAll() {

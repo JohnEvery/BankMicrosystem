@@ -1,5 +1,7 @@
 package com.javastart.customerservice.transfer.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.javastart.customerservice.controller.dto.AccountResponseDTO;
 import com.javastart.customerservice.controller.dto.BillDTO;
 import com.javastart.customerservice.controller.dto.BillResponseDTO;
@@ -8,8 +10,10 @@ import com.javastart.customerservice.exceptions.NotEnoughMoneyException;
 import com.javastart.customerservice.rest.AccountRestService;
 import com.javastart.customerservice.rest.BillRestService;
 import com.javastart.customerservice.rest.CustomerRestService;
+import com.javastart.customerservice.transfer.controller.dto.TransferResponseDTO;
 import com.javastart.customerservice.transfer.entity.Transfer;
 import com.javastart.customerservice.transfer.repository.TransferRepository;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,12 +34,15 @@ public class TransferService {
 
     private final CustomerRestService customerRestService;
 
+    private final RabbitTemplate rabbitTemplate;
+
     @Autowired
-    public TransferService(TransferRepository transferRepository, AccountRestService accountRestService, BillRestService billRestService, CustomerRestService customerRestService) {
+    public TransferService(TransferRepository transferRepository, AccountRestService accountRestService, BillRestService billRestService, CustomerRestService customerRestService, RabbitTemplate rabbitTemplate) {
         this.transferRepository = transferRepository;
         this.accountRestService = accountRestService;
         this.billRestService = billRestService;
         this.customerRestService = customerRestService;
+        this.rabbitTemplate = rabbitTemplate;
     }
 
     public Transfer getById(Long transferId) {
@@ -76,9 +83,17 @@ public class TransferService {
                 billRestService.updateBills(billIdFrom, billIdTo, Arrays.asList(billRequestFrom, billRequestTo));
                 String emailFrom = accountRestService.getAccountById(billResponseDTOFrom.getAccountId()).getEmail();
                 String emailTo = accountRestService.getAccountById(billResponseDTOTo.getAccountId()).getEmail();
-                transferRepository.save(new Transfer(OffsetDateTime.now(),
-                        billIdFrom, billIdTo, emailFrom, emailTo, amount));
-                return  new Transfer(OffsetDateTime.now(), billIdFrom, billIdTo, emailFrom, emailTo, amount);
+                Transfer transfer = new Transfer(OffsetDateTime.now(), billIdFrom, billIdTo, emailFrom, emailTo, amount);
+                transferRepository.save(transfer);
+                TransferResponseDTO transferResponseDTO = new TransferResponseDTO(transfer);
+                ObjectMapper objectMapper = new ObjectMapper();
+                try {
+                    rabbitTemplate.convertAndSend("js.transfer.notify.exchange",
+                            "js.transfer", objectMapper.writeValueAsString(transferResponseDTO));
+                } catch (JsonProcessingException e) {
+                    e.printStackTrace();
+                }
+                return transfer;
             } else {
                 throw new NotEnoughMoneyException("Not enough funds on bill with id " + billIdFrom);
             }
@@ -100,10 +115,18 @@ public class TransferService {
                     .build();
             billRestService.updateBills(defaultBillResponseFrom.getBillId(),
                     defaultBillResponseTo.getBillId(), Arrays.asList(billRequestDTOFrom, billRequestDTOTo));
-            transferRepository.save(new Transfer(OffsetDateTime.now(), defaultBillResponseFrom.getBillId(),
-                    defaultBillResponseTo.getBillId(), accountFrom.getEmail(), accountTo.getEmail(), amount));
-            return new Transfer(OffsetDateTime.now(), defaultBillResponseFrom.getBillId(),
+            Transfer transfer = new Transfer(OffsetDateTime.now(), defaultBillResponseFrom.getBillId(),
                     defaultBillResponseTo.getBillId(), accountFrom.getEmail(), accountTo.getEmail(), amount);
+            transferRepository.save(transfer);
+            TransferResponseDTO transferResponseDTO = new TransferResponseDTO(transfer);
+            ObjectMapper objectMapper = new ObjectMapper();
+            try {
+                rabbitTemplate.convertAndSend("js.transfer.notify.exchange",
+                        "js.transfer", objectMapper.writeValueAsString(transferResponseDTO));
+            } catch (JsonProcessingException e) {
+                e.printStackTrace();
+            }
+            return transfer;
         } else {
             throw new NotEnoughMoneyException("Not enough funds on bill with id "
                     + defaultBillResponseFrom.getBillId());
