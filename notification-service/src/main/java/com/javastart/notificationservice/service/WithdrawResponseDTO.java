@@ -14,6 +14,8 @@ public class WithdrawResponseDTO implements Serializable {
 
     public static final int serialVersionUID = 11;
 
+    private String withdrawDate;
+
     private Long billId;
 
     private String accountEmail;

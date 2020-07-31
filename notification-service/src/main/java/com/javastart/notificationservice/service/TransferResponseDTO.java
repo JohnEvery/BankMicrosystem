@@ -14,6 +14,8 @@ public class TransferResponseDTO implements Serializable {
 
     public static final int serialVersionUID = 13;
 
+    private String transferDate;
+
     private Long billIdFrom;
 
     private Long billIdTo;

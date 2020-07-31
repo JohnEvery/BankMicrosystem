@@ -5,13 +5,12 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
 
 @Data
 @AllArgsConstructor
 public class WithdrawResponseDTO {
 
-//    private OffsetDateTime withdrawDate;
+    private String withdrawDate;
 
     private Long billId;
 
@@ -22,7 +21,7 @@ public class WithdrawResponseDTO {
     private BigDecimal balance;
 
     public WithdrawResponseDTO(Withdraw withdraw) {
-//        this.withdrawDate = withdraw.getWithdrawTime();
+        this.withdrawDate = withdraw.getWithdrawTime().toString();
         this.billId = withdraw.getBillId();
         this.accountEmail = withdraw.getEmail();
         this.amount = withdraw.getAmount();

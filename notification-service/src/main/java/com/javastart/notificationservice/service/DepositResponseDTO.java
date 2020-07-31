@@ -14,7 +14,7 @@ public class DepositResponseDTO implements Serializable {
 
     public static final int serialVersionUID = 10;
 
-//    private OffsetDateTime depositDate;
+    private String depositDate;
 
     private Long billId;
 

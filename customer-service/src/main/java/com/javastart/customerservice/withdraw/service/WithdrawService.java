@@ -75,7 +75,8 @@ public class WithdrawService {
         if (billId != null) {
             BillResponseDTO billResponseDTO = billRestService.getBillById(billId);
             AccountResponseDTO account = accountRestService.getAccountById(billResponseDTO.getAccountId());
-            if (billResponseDTO.getAmount().compareTo(amount) >= 0) {
+            if ((billResponseDTO.getAmount().compareTo(amount) < 0 && billResponseDTO.getOverdraftEnabled())
+                    || (billResponseDTO.getAmount().compareTo(amount) == 0)) {
                 BillDTO billRequestDTO = BillDTO.builder()
                         .accountId(account.getAccountId())
                         .amount(billResponseDTO.getAmount().subtract(amount))
@@ -102,7 +103,8 @@ public class WithdrawService {
         }
         BillResponseDTO defaultBill = billRestService.getDefaultBillByAccountId(accountId);
         AccountResponseDTO account = accountRestService.getAccountById(accountId);
-        if (defaultBill.getAmount().compareTo(amount) > 0) {
+        if ((defaultBill.getAmount().compareTo(amount) < 0 && defaultBill.getOverdraftEnabled())
+                || (defaultBill.getAmount().compareTo(amount) == 0)) {
             BillDTO billRequestDTO = BillDTO.builder()
                     .accountId(account.getAccountId())
                     .amount(defaultBill.getAmount().subtract(amount))
@@ -110,8 +112,8 @@ public class WithdrawService {
                     .overdraftEnabled(defaultBill.getOverdraftEnabled())
                     .build();
             restTemplate.put(billServiceUrl.concat(defaultBill.getBillId().toString()), billRequestDTO);
-            Withdraw withdrawResponse = new Withdraw(OffsetDateTime.now(), defaultBill.getBillId(), account.getEmail(),
-                    amount, billRequestDTO.getAmount());
+            Withdraw withdrawResponse = new Withdraw(OffsetDateTime.now(), defaultBill.getBillId(),
+                    account.getEmail(), amount, billRequestDTO.getAmount());
             withdrawRepository.save(withdrawResponse);
             WithdrawResponseDTO withdrawResponseDTO = new WithdrawResponseDTO(withdrawResponse);
             ObjectMapper objectMapper = new ObjectMapper();

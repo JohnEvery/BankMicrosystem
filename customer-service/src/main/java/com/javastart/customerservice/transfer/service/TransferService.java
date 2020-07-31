@@ -67,7 +67,8 @@ public class TransferService {
         if(billIdFrom != null && billIdTo != null) {
             BillResponseDTO billResponseDTOFrom = billRestService.getBillById(billIdFrom);
             BillResponseDTO billResponseDTOTo = billRestService.getBillById(billIdTo);
-            if(billResponseDTOFrom.getAmount().compareTo(amount) > 0) {
+            if((billResponseDTOFrom.getAmount().compareTo(amount) < 0 && billResponseDTOFrom.getOverdraftEnabled())
+                    || (billResponseDTOFrom.getAmount().compareTo(amount) == 0)) {
                 BillDTO billRequestFrom = BillDTO.builder()
                         .accountId(billResponseDTOFrom.getAccountId())
                         .amount(billResponseDTOFrom.getAmount().subtract(amount))
