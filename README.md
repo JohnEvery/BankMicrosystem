@@ -16,7 +16,8 @@ Java RESTful API for money transfers between customers account bills.
 
 ### How to run
 ```sh
-To launch classes Application.java in servecies customerService, accountService, billService and notificationService.
+To launch classes Application.java in servecies customerService, accountService, 
+billService and notificationService.
 ```
 
 Services billServise, accountService, customerService and notificationService   start on localhost ports 8081, 8082, 9090, 9091 respectively. 
