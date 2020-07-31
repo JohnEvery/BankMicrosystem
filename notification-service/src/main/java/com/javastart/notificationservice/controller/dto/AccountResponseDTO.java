@@ -1,4 +1,4 @@
-package com.javastart.notificationservice.service;
+package com.javastart.notificationservice.controller.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

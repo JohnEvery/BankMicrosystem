@@ -1,4 +1,4 @@
-package com.javastart.notificationservice.service;
+package com.javastart.notificationservice.controller.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -10,15 +10,15 @@ import java.math.BigDecimal;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class DepositResponseDTO implements Serializable {
+public class WithdrawResponseDTO implements Serializable {
 
-    public static final int serialVersionUID = 10;
+    public static final int serialVersionUID = 11;
 
-    private String depositDate;
+    private String withdrawDate;
 
     private Long billId;
 
-    private String email;
+    private String accountEmail;
 
     private BigDecimal amount;
 

@@ -3,6 +3,7 @@ package com.javastart.notificationservice.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.javastart.notificationservice.config.RabbitMQConfig;
+import com.javastart.notificationservice.controller.dto.TransferResponseDTO;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
