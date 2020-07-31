@@ -103,7 +103,8 @@ public class TransferService {
         AccountResponseDTO accountTo = accountRestService.getAccountById(accountIdTo);
         BillResponseDTO defaultBillResponseFrom = billRestService.getDefaultBillByAccountId(accountIdFrom);
         BillResponseDTO defaultBillResponseTo = billRestService.getDefaultBillByAccountId(accountIdTo);
-        if(defaultBillResponseFrom.getAmount().compareTo(amount) > 0) {
+        if((defaultBillResponseFrom.getAmount().compareTo(amount) < 0 && defaultBillResponseFrom.getOverdraftEnabled())
+                || (defaultBillResponseFrom.getAmount().compareTo(amount) == 0)) {
             BillDTO billRequestDTOFrom = BillDTO.builder().accountId(accountIdFrom)
                     .isDefault(defaultBillResponseFrom.getIsDefault())
                     .amount(defaultBillResponseFrom.getAmount().subtract(amount))
