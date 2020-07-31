@@ -20,7 +20,7 @@ To launch classes Application.java in servecies customerService, accountService,
 billService and notificationService.
 ```
 
-Services billServise, accountService, customerService and notificationService   start on localhost ports 8081, 8082, 9090, 9091 respectively. 
+Services billServise, accountService, customerService and notificationService   start on localhost ports 8081, 8082, 9090, 9999 respectively. 
 PostgreSQL database and RabbitMQ broker initialized with some sample user. 
 
 
