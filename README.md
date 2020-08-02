@@ -106,3 +106,11 @@ PostgreSQL database and RabbitMQ broker initialized with some sample user.
     //It is enough to specify only the account id, to search for default bills for accounts
 }
 ```
+
+## How it work
+### Notifications by RabbitMq broker on the example of making a deposit :
+
+
+ <p align="center">
+  <img src="https://i.ibb.co/T2XHmp9/rabbitMq.png" width="1000">
+</p>
